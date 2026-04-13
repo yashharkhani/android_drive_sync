@@ -21,6 +21,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
+import kotlinx.coroutines.launch
 import com.drivesync.app.auth.SignInState
 import com.drivesync.app.data.local.FolderMapping
 import com.drivesync.app.ui.viewmodel.HomeViewModel
@@ -40,15 +41,14 @@ fun HomeScreen(
     val signInState by viewModel.signInState.collectAsStateWithLifecycle()
     val isSyncRunning by viewModel.isSyncRunning.collectAsStateWithLifecycle()
     val snackbarHostState = remember { SnackbarHostState() }
+    val scope = rememberCoroutineScope()
 
     // Google Sign-In launcher
     val signInLauncher = rememberLauncherForActivityResult(
         ActivityResultContracts.StartActivityForResult()
     ) { result ->
-        viewModel.authManager.run {
-            kotlinx.coroutines.MainScope().launch {
-                handleSignInResult(result.data)
-            }
+        scope.launch {
+            viewModel.authManager.handleSignInResult(result.data)
         }
     }
 
@@ -120,7 +120,7 @@ fun HomeScreen(
                 AccountChip(
                     email = account?.email ?: "",
                     onSignOut = {
-                        kotlinx.coroutines.MainScope().launch {
+                        scope.launch {
                             viewModel.authManager.signOut()
                         }
                     }
@@ -420,7 +420,3 @@ private fun FolderPathRow(
     }
 }
 
-// Extension to help with coroutines in Composable (for sign-in)
-private fun kotlinx.coroutines.MainScope() = kotlinx.coroutines.CoroutineScope(
-    kotlinx.coroutines.Dispatchers.Main + kotlinx.coroutines.SupervisorJob()
-)
